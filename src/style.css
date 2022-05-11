@@ -8,17 +8,33 @@ body {
 }
 
 .wrapper-sections {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
     background-color: slategray;
 }
 
 .section {
-    width: clamp(0px, 90%, 1200px);
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100vw;
     height: 100vh;
     margin: auto;
+    background-color: slategray;
+}
 
+.section-content {
+    height: 100vh;
+    width: clamp(0px, 90%, 1000px);
+    margin: auto;
+    
     display: flex;
     flex-direction: column;
     gap: 1rem;

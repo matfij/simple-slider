@@ -3,6 +3,8 @@ const TRANSITION_RESOLUTION = 100;
 const FADE_IN_DISTANCE = 15;
 const FADE_OUT_DISTANCE = 25;
 
+const SCROLL_LOCK = 1 * 1000;
+
 let currentSection = null;
 let currentSectionIndex = 0;
 let sections = [];
@@ -118,6 +120,9 @@ const setup = () => {
 
     currentSection = sections[currentSectionIndex];
     currentSection.style.opacity = 1;
+
+    let mainWrapper = document.getElementById('wrapper-sections');
+    mainWrapper.addEventListener('wheel', (event) => { handleMouseScroll(event) });
 };
 
 
@@ -140,6 +145,31 @@ const handleScroll = async (event) => {
         currentSection = nextSection;
     }
 };
+
+
+const handleMouseScroll = (event) => {
+    if (!canScroll) return;
+    canScroll = false;
+
+    if (event.deltaY > 0 && currentSectionIndex < sections.length - 1) {
+        let nextSection = sections[currentSectionIndex + 1];
+        
+        scrollDown(currentSection, nextSection);
+        currentSectionIndex += 1;
+        currentSection = nextSection;
+    }
+    if (event.deltaY < 0 && currentSectionIndex > 0) {
+        let nextSection = sections[currentSectionIndex - 1];
+
+        scrollUp(currentSection, nextSection);
+        currentSectionIndex -= 1;
+        currentSection = nextSection;
+    }
+
+    setTimeout(() => {
+        canScroll = true;
+    }, SCROLL_LOCK);
+}
 
 
 const resetScroll = () => {

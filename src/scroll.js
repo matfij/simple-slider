@@ -1,90 +1,128 @@
-const VANISH_TIME = 500;
-const VANISH_STEPS = 100;
-const VANISH_SLIDE = 20;
+const TRANSITION_TIME = 500;
+const TRANSITION_RESOLUTION = 100;
+const FADE_IN_DISTANCE = 15;
+const FADE_OUT_DISTANCE = 25;
 
-var currentSection = null;
-var currentSectionIndex = 1;
-var sections = [];
-var fillerSections = [];
-var canScroll = true;
+const SCROLL_LOCK = 1 * 1000;
+
+let currentSection = null;
+let currentSectionIndex = 0;
+let sections = [];
+let canScroll = true;
+let fadeOutInterval = null;
+let fadeInInterval = null;
 
 
-const resetStyles = () => {
+const resetState = () => {
     for (let ind = 0; ind < sections.length; ind++) {
-        sections[ind].style.opacity = 1;
-        sections[ind].style.padding = 0;
+        sections[ind].style.opacity = 0;
+        sections[ind].style.bottom = 0;
     }
+    clearInterval(fadeOutInterval);
+    clearInterval(fadeInInterval);
 }
 
 
-const scrollDown = async (prevElement, element, nextElement) => {
-    resetStyles();
-    
-    if (!prevElement) {
-        nextElement.scrollIntoView({behavior: 'auto'});
-        element.scrollIntoView({behavior: 'smooth'});
-        return;
-    }
-    prevElement.style.opacity = 1;
+const scrollDown = async (currentSection, nextSection) => {
+    resetState();
+    currentSection.style.opacity = 1;
 
-    let step = 0;
-    let opacity = 1;
-    let margin = 0
-    let interval = setInterval(() => {
-        step += 1;
-        if (opacity <= 0) {
-            clearInterval(interval);
-            return;
-        }
-        prevElement.style.opacity = opacity;
-        prevElement.style.paddingTop = margin + 'rem';
-        opacity -= 1.5 / VANISH_STEPS;
-        margin += VANISH_SLIDE / VANISH_STEPS;
-    }, VANISH_TIME / VANISH_STEPS);
+    // fade out current section
+    let fadeOutStep = 0;
+    let fadeOutOpacity = 1;
+    let fadeOutDistance = 0;
+    fadeOutInterval = setInterval(() => {
+        fadeOutStep++;
+        if (fadeOutStep === TRANSITION_RESOLUTION) clearInterval(fadeOutInterval);
+        fadeOutOpacity -= 1 / TRANSITION_RESOLUTION;
+        fadeOutDistance -= FADE_IN_DISTANCE / TRANSITION_RESOLUTION;
 
+        currentSection.style.opacity = fadeOutOpacity;
+        currentSection.style.bottom = fadeOutDistance + 'rem';
+    }, TRANSITION_TIME / TRANSITION_RESOLUTION);
     setTimeout(() => {
-        nextElement.scrollIntoView({behavior: 'auto'});
-        element.scrollIntoView({behavior: 'smooth'});
-        resetStyles();
-    }, 0.75 * VANISH_TIME);
+        currentSection.style.opacity = 0;
+        currentSection.style.bottom = 0;
+    }, 1.1 * TRANSITION_TIME);
+
+    // fade in next section
+    setTimeout(() => {
+        let fadeInStep = 0;
+        let fadeInOpacity = 0;
+        let fadeInPadding = FADE_OUT_DISTANCE;
+        fadeInInterval = setInterval(() => {
+            fadeInStep++;
+            if (fadeInStep === TRANSITION_RESOLUTION) clearInterval(fadeInInterval);
+    
+            fadeInOpacity += 1 / TRANSITION_RESOLUTION;
+            fadeInPadding -= FADE_OUT_DISTANCE / TRANSITION_RESOLUTION;
+
+            nextSection.style.opacity = fadeInOpacity;
+            nextSection.style.bottom = fadeInPadding + 'rem';
+        }, TRANSITION_TIME / TRANSITION_RESOLUTION);
+        setTimeout(() => {
+            nextSection.style.opacity = 1;
+            nextSection.style.bottom = 0;
+        }, 1.1 * TRANSITION_TIME);
+    }, 1.1 * TRANSITION_TIME);
 };
 
 
-const scrollUp = async (prevElement, element, nextElement) => {
-    resetStyles();
+const scrollUp = async (currentSection, nextSection) => {
+    resetState();
+    currentSection.style.opacity = 1;
 
-    let step = 0;
-    let opacity = 1;
-    let margin = 0
-    let interval = setInterval(() => {
-        step += 1;
-        if (opacity <= 0) {
-            clearInterval(interval);
-            return;
-        }
-        nextElement.style.opacity = opacity;
-        nextElement.style.paddingBottom = margin + 'rem';
-        opacity -= 1.5 / VANISH_STEPS;
-        margin += VANISH_SLIDE / VANISH_STEPS;
-    }, VANISH_TIME / VANISH_STEPS);
+    // fade out current section
+    let fadeOutStep = 0;
+    let fadeOutOpacity = 1;
+    let fadeOutDistance = 0;
+    fadeOutInterval = setInterval(() => {
+        fadeOutStep++;
+        if (fadeOutStep === TRANSITION_RESOLUTION) clearInterval(fadeOutInterval);
+        fadeOutOpacity -= 1.5 / TRANSITION_RESOLUTION;
+        fadeOutDistance += FADE_IN_DISTANCE / TRANSITION_RESOLUTION;
 
+        currentSection.style.opacity = fadeOutOpacity;
+        currentSection.style.bottom = fadeOutDistance + 'rem';
+    }, TRANSITION_TIME / TRANSITION_RESOLUTION);
     setTimeout(() => {
-        prevElement.scrollIntoView({behavior: 'auto'});
-        element.scrollIntoView({behavior: 'smooth'});
-        resetStyles();
-    }, 0.75 * VANISH_TIME);
+        currentSection.style.opacity = 0;
+        currentSection.style.bottom = 0;
+    }, 1.1 * TRANSITION_TIME);
+
+    // fade in next section
+    setTimeout(() => {
+        let fadeInStep = 0;
+        let fadeInOpacity = 0;
+        let fadeInDistance = -FADE_OUT_DISTANCE;
+        fadeInInterval = setInterval(() => {
+            fadeInStep++;
+            if (fadeInStep === TRANSITION_RESOLUTION) clearInterval(fadeInInterval);
+    
+            fadeInOpacity += 1 / TRANSITION_RESOLUTION;
+            fadeInDistance += FADE_OUT_DISTANCE / TRANSITION_RESOLUTION;
+
+            nextSection.style.opacity = fadeInOpacity;
+            nextSection.style.bottom = fadeInDistance + 'rem';
+        }, TRANSITION_TIME / TRANSITION_RESOLUTION);
+        setTimeout(() => {
+            nextSection.style.opacity = 1;
+            nextSection.style.bottom = 0;
+        }, 1.1 * TRANSITION_TIME);
+    }, 1.1 * TRANSITION_TIME);
 }
 
 
 const setup = () => {
     sections = document.getElementsByClassName('section');
-    currentSection = sections[currentSectionIndex];
-    nextSection = sections[currentSectionIndex + 1];
 
-    fillerSections = document.getElementsByClassName('filler-section');
-    
-    scrollDown(null, currentSection, nextSection);
-    resetStyles();
+    resetState();
+
+    currentSection = sections[currentSectionIndex];
+    currentSection.style.opacity = 1;
+
+    let mainWrapper = document.getElementById('wrapper-sections');
+    mainWrapper.addEventListener('wheel', (event) => { handleMouseScroll(event) });
 };
 
 
@@ -92,28 +130,49 @@ const handleScroll = async (event) => {
     if (!canScroll) return;
     canScroll = false;
 
-    if ([' ', 'Space', 'ArrowDown', 'ArrowRight'].indexOf(event.key) > -1 && currentSectionIndex < sections.length - 2) {
-        currentSectionIndex += 2;
-
-        let prevSection = currentSection;
-        currentSection = sections[currentSectionIndex];
+    if ([' ', 'Space', 'ArrowDown', 'ArrowRight'].indexOf(event.key) > -1 && currentSectionIndex < sections.length - 1) {
         let nextSection = sections[currentSectionIndex + 1];
         
-        scrollDown(prevSection, currentSection, nextSection);
+        scrollDown(currentSection, nextSection);
+        currentSectionIndex += 1;
+        currentSection = nextSection;
     }
-    if (['ArrowUp', 'ArrowLeft'].indexOf(event.key) > -1 && currentSectionIndex > 1) {
-        currentSectionIndex -= 2;
-        
-        let prevSection = currentSection;
-        currentSection = sections[currentSectionIndex];
+    if (['ArrowUp', 'ArrowLeft'].indexOf(event.key) > -1 && currentSectionIndex > 0) {
         let nextSection = sections[currentSectionIndex - 1];
         
-        scrollUp(nextSection, currentSection, prevSection);
+        scrollUp(currentSection, nextSection);
+        currentSectionIndex -= 1;
+        currentSection = nextSection;
     }
 };
 
 
-const resetScroll = (event) => {
+const handleMouseScroll = (event) => {
+    if (!canScroll) return;
+    canScroll = false;
+
+    if (event.deltaY > 0 && currentSectionIndex < sections.length - 1) {
+        let nextSection = sections[currentSectionIndex + 1];
+        
+        scrollDown(currentSection, nextSection);
+        currentSectionIndex += 1;
+        currentSection = nextSection;
+    }
+    if (event.deltaY < 0 && currentSectionIndex > 0) {
+        let nextSection = sections[currentSectionIndex - 1];
+
+        scrollUp(currentSection, nextSection);
+        currentSectionIndex -= 1;
+        currentSection = nextSection;
+    }
+
+    setTimeout(() => {
+        canScroll = true;
+    }, SCROLL_LOCK);
+}
+
+
+const resetScroll = () => {
     canScroll = true;
 };
 

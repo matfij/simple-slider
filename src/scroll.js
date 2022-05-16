@@ -1,13 +1,19 @@
 /**
  * Config
  */
-const TRANSITION_TIME = 500;
-const TRANSITION_RESOLUTION = 100;
-const FADE_IN_DISTANCE = 15;
-const FADE_OUT_DISTANCE = 25;
+const FADE_OUT_TIME = 1000;
+const FADE_IN_DELAY = 1000;
+const FADE_IN_TIME = 1000;
+const FADE_IN_DISTANCE = 45;
+const FADE_OUT_DISTANCE = 55;
+const FADE_OUT_RES = FADE_OUT_TIME / 4;
+const FADE_IN_RES = FADE_IN_TIME / 4;
 
-const SCROLL_LOCK = 1 * 1200;
-const SWIPE_LOCK = 1 * 1200;
+const SCROLL_LOCK = 1000;
+const SWIPE_LOCK = 1000;
+
+const SCROLL_TRSHOLD = 1;
+const SWIPE_TRSHOLD = 1;
 
 /**
  * State
@@ -72,41 +78,43 @@ const scrollDown = async (currentSection, nextSection) => {
     let fadeOutDistance = 0;
     fadeOutInterval = setInterval(() => {
         fadeOutStep++;
-        if (fadeOutStep >= TRANSITION_RESOLUTION)  { clearInterval(fadeOutInterval); return; }
+        if (fadeOutStep >= FADE_OUT_RES)  { clearInterval(fadeOutInterval); return; }
 
-        fadeOutOpacity -= 1 / TRANSITION_RESOLUTION;
-        fadeOutDistance += FADE_IN_DISTANCE / TRANSITION_RESOLUTION;
+        fadeOutOpacity = (FADE_OUT_RES - 1.5 * fadeOutStep) / FADE_OUT_RES;
+        fadeOutDistance = (fadeOutStep * (1 + fadeOutStep / 700)) * FADE_OUT_DISTANCE / FADE_OUT_RES;
 
         currentSection.style.opacity = fadeOutOpacity;
         currentSection.style.bottom = fadeOutDistance + "rem";
-    }, TRANSITION_TIME / TRANSITION_RESOLUTION);
+    }, FADE_OUT_TIME / FADE_OUT_RES);
     
     setTimeout(() => {
         currentSection.style.opacity = 0;
         currentSection.style.bottom = 0;
-    }, 1.1 * TRANSITION_TIME);
+    }, 1.1 * FADE_OUT_TIME);
 
     // fade in next section
     let fadeInStep = 0;
     let fadeInOpacity = 0;
-    let fadeInDistance = -FADE_OUT_DISTANCE;
+    let fadeInDistance = -FADE_IN_DISTANCE;
     setTimeout(() => {
         fadeInInterval = setInterval(() => {
             fadeInStep++;
-            if (fadeInStep >= TRANSITION_RESOLUTION)  { clearInterval(fadeInInterval); return; }
+            if (fadeInStep >= FADE_IN_RES)  { clearInterval(fadeInInterval); return; }
 
-            fadeInOpacity += 1 / TRANSITION_RESOLUTION;
-            fadeInDistance += FADE_OUT_DISTANCE / TRANSITION_RESOLUTION;
+            fadeInOpacity += 1.1 / FADE_IN_RES;
+            fadeInDistance = 0.8 * (FADE_IN_DISTANCE * FADE_IN_RES * Math.tanh((0.25*FADE_IN_RES + 3*fadeInStep) / FADE_IN_RES)
+                 - FADE_IN_DISTANCE * FADE_IN_RES) / (FADE_IN_RES);
 
             nextSection.style.opacity = fadeInOpacity;
             nextSection.style.bottom = fadeInDistance + "rem";
-        }, TRANSITION_TIME / TRANSITION_RESOLUTION);
+
+        }, FADE_IN_TIME / FADE_IN_RES);
         
         setTimeout(() => {
             resetState();
             nextSection.style.opacity = 1;
-        }, 1.1 * TRANSITION_TIME);
-    }, 1.1 * TRANSITION_TIME);
+        }, 1.1 * FADE_IN_TIME);
+    }, 1.1 * FADE_IN_DELAY);
 };
 
 
@@ -120,41 +128,42 @@ const scrollUp = async (currentSection, nextSection) => {
     let fadeOutDistance = 0;
     fadeOutInterval = setInterval(() => {
         fadeOutStep++;
-        if (fadeOutStep >= TRANSITION_RESOLUTION) { clearInterval(fadeOutInterval); return; }
+        if (fadeOutStep >= FADE_OUT_RES) { clearInterval(fadeOutInterval); return; }
 
-        fadeOutOpacity -= 1.5 / TRANSITION_RESOLUTION;
-        fadeOutDistance -= FADE_IN_DISTANCE / TRANSITION_RESOLUTION;
+        fadeOutOpacity = (FADE_OUT_RES - 1.5 * fadeOutStep) / FADE_OUT_RES;
+        fadeOutDistance = -(fadeOutStep * (1 + fadeOutStep / 700)) * FADE_OUT_DISTANCE / FADE_OUT_RES;
 
         currentSection.style.opacity = fadeOutOpacity;
         currentSection.style.bottom = fadeOutDistance + "rem";
-    }, TRANSITION_TIME / TRANSITION_RESOLUTION);
+    }, FADE_OUT_TIME / FADE_OUT_RES);
     
     setTimeout(() => {
         currentSection.style.opacity = 0;
         currentSection.style.bottom = 0;
-    }, 1.1 * TRANSITION_TIME);
+    }, 1.1 * FADE_OUT_TIME);
 
     // fade in next section
     let fadeInStep = 0;
     let fadeInOpacity = 0;
-    let fadeInDistance = FADE_OUT_DISTANCE;
+    let fadeInDistance = FADE_IN_DISTANCE;
     setTimeout(() => {
         fadeInInterval = setInterval(() => {
             fadeInStep++;
-            if (fadeInStep >= TRANSITION_RESOLUTION) { clearInterval(fadeInInterval); return}
+            if (fadeInStep >= FADE_IN_RES) { clearInterval(fadeInInterval); return}
 
-            fadeInOpacity += 1 / TRANSITION_RESOLUTION;
-            fadeInDistance -= FADE_OUT_DISTANCE / TRANSITION_RESOLUTION;
+            fadeInOpacity += 1.1 / FADE_IN_RES;
+            fadeInDistance = - 0.8 * (FADE_IN_DISTANCE * FADE_IN_RES * Math.tanh((0.25*FADE_IN_RES + 3*fadeInStep) / FADE_IN_RES)
+            - FADE_IN_DISTANCE * FADE_IN_RES) / (FADE_IN_RES);
 
             nextSection.style.opacity = fadeInOpacity;
             nextSection.style.bottom = fadeInDistance + "rem";
-        }, TRANSITION_TIME / TRANSITION_RESOLUTION);
+        }, FADE_IN_TIME / FADE_IN_RES);
         
         setTimeout(() => {
             resetState();
             nextSection.style.opacity = 1;
-        }, 1.1 * TRANSITION_TIME);
-    }, 1.1 * TRANSITION_TIME);
+        }, 1.1 * FADE_IN_TIME);
+    }, 1.1 * FADE_IN_DELAY);
 };
 
 
@@ -186,13 +195,13 @@ const handleMouseScroll = (event) => {
     if (!canScroll) return;
     canScroll = false;
 
-    if (event.deltaY > 0 && currentSectionIndex < sections.length - 1) {
+    if (event.deltaY > SCROLL_TRSHOLD && currentSectionIndex < sections.length - 1) {
         let nextSection = sections[currentSectionIndex + 1];
         scrollDown(currentSection, nextSection);
         currentSectionIndex += 1;
         currentSection = nextSection;
     }
-    if (event.deltaY < 0 && currentSectionIndex > 0) {
+    if (event.deltaY < -SCROLL_TRSHOLD && currentSectionIndex > 0) {
         let nextSection = sections[currentSectionIndex - 1];
         scrollUp(currentSection, nextSection);
         currentSectionIndex -= 1;
@@ -218,17 +227,15 @@ const handleTouchMove = (event) => {
     var swipeEndY = event.touches[0].clientY;
     var swipeDiffY = swipeStartY - swipeEndY;
 
-    if (swipeDiffY > 10 && currentSectionIndex < sections.length - 1) {
+    if (swipeDiffY > SWIPE_TRSHOLD && currentSectionIndex < sections.length - 1) {
         let nextSection = sections[currentSectionIndex + 1];
         scrollDown(currentSection, nextSection);
         currentSectionIndex += 1;
-        currentSection = nextSection; console.log('down', swipeDiffY);
     }
-    if (swipeDiffY < -10 && currentSectionIndex > 0) {
+    if (swipeDiffY < -SWIPE_TRSHOLD && currentSectionIndex > 0) {
         let nextSection = sections[currentSectionIndex - 1];
         scrollUp(currentSection, nextSection);
         currentSectionIndex -= 1;
-        currentSection = nextSection; console.log('up', swipeDiffY);
     }
 
     resetSwipe();

@@ -16,7 +16,7 @@ body {
     flex-direction: column;
     overflow: hidden;
 
-    background-color: slategray;
+    background-color: rgb(31, 36, 48);
 }
 
 .section {
@@ -27,7 +27,7 @@ body {
     width: 100vw;
     height: 100vh;
     margin: auto;
-    background-color: slategray;
+    background-color: rgb(31, 36, 48);
 }
 
 .section-content {

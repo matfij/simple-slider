@@ -9,8 +9,7 @@ const FADE_OUT_DISTANCE = 55;
 const FADE_OUT_RES = FADE_OUT_TIME / 4;
 const FADE_IN_RES = FADE_IN_TIME / 4;
 
-const SCROLL_LOCK = 1000;
-const SWIPE_LOCK = 1000;
+const SCROLL_LOCK = 100 + (FADE_IN_TIME + FADE_OUT_TIME + FADE_IN_DELAY);
 
 const SCROLL_TRSHOLD = 1;
 const SWIPE_TRSHOLD = 1;
@@ -24,9 +23,7 @@ let sections = [];
 let canScroll = true;
 let fadeOutInterval = null;
 let fadeInInterval = null;
-
 let swipeStartY = null;
-let canSwipe = true;
 
 
 const setup = () => {
@@ -57,11 +54,7 @@ const resetState = () => {
 
 
 const resetScroll = () => {
-    setTimeout(() => { canScroll = true; }, SCROLL_LOCK);
-};
-
-const resetSwipe = () => {
-    setTimeout(() => { canSwipe = true; }, SCROLL_LOCK);
+    setTimeout(() => { canScroll = true; console.log('can scroll') }, SCROLL_LOCK);
 };
 
 
@@ -221,8 +214,8 @@ const handleTouchStart = (event) => {
 };
 
 const handleTouchMove = (event) => {
-    if (!swipeStartY || !canSwipe) return;
-    canSwipe = false;
+    if (!swipeStartY || !canScroll) return;
+    canScroll = false;
 
     var swipeEndY = event.touches[0].clientY;
     var swipeDiffY = swipeStartY - swipeEndY;
@@ -231,14 +224,16 @@ const handleTouchMove = (event) => {
         let nextSection = sections[currentSectionIndex + 1];
         scrollDown(currentSection, nextSection);
         currentSectionIndex += 1;
+        currentSection = nextSection;
     }
     if (swipeDiffY < -SWIPE_TRSHOLD && currentSectionIndex > 0) {
         let nextSection = sections[currentSectionIndex - 1];
         scrollUp(currentSection, nextSection);
         currentSectionIndex -= 1;
+        currentSection = nextSection;
     }
 
-    resetSwipe();
+    resetScroll();
 };
 
 
@@ -254,6 +249,5 @@ window.addEventListener("keydown", (event) => {
 
 window.addEventListener("load", setup);
 window.addEventListener("keydown", handleScroll);
-window.addEventListener("keyup", resetScroll);
 document.addEventListener("touchstart", handleTouchStart, false);
 document.addEventListener("touchmove", handleTouchMove, false);

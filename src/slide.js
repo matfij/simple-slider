@@ -2,15 +2,12 @@
  * Config
  */
 
-const FADE_OUT_TIME = 1.5;
-const FADE_IN_TIME = 1.5;
-const FADE_IN_DELAY = 1;
+const FADE_OUT_TIME = 4.5;
+const FADE_IN_TIME = 4.5;
+const FADE_IN_DELAY = 2.0;
 const FADE_IN_FINISHER_DELAY = 1;
 
-const FADE_IN_DISTANCE = 1200;
-const FADE_OUT_DISTANCE = 1200;
-
-const LOCK_TIME = 100;
+const LOCK_TIME = 500;
 
 const SCROLL_TRSHOLD = 1;
 const SWIPE_TRSHOLD = 1;
@@ -43,7 +40,6 @@ const setup = () => {
 const resetState = () => {
     for (let ind = 0; ind < sections.length; ind++) {
         sections[ind].style.opacity = 0;
-        sections[ind].style.transform = `translateY(0px)`;
     }
 };
 
@@ -56,26 +52,16 @@ const resetScroll = () => {
  */
 
 const handleScroll = async (currentSection, nextSection, dir = 1) => {
-    // fade out current section
+    resetState();
     currentSection.style.opacity = 1;
-    currentSection.style.transform = `translateY(0px)`;
-    setTimeout(() => {
-        currentSection.style.transition = `${FADE_OUT_TIME}s cubic-bezier(.76,.23,1,.63), opacity ${FADE_OUT_TIME}s linear`;
-        currentSection.style.opacity = 0;
-        currentSection.style.transform = `translateY(${-dir * FADE_OUT_DISTANCE}px)`;
-    }, 0);
+    
+    // fade out
+    if (dir) currentSection.style.animation = `fadeOutDown ${FADE_OUT_TIME}s cubic-bezier(.86,.24,.24,.94) forwards 0s`;
+    else currentSection.style.animation = `fadeOutUp ${FADE_OUT_TIME}s cubic-bezier(.86,.24,.24,.94) forwards 0s`;
 
-    // fade in next section
-    nextSection.style.transition = `0s linear`;
-    nextSection.style.transform = `scale(0.8) translateY(${dir * FADE_IN_DISTANCE}px)`;
-    setTimeout(() => {
-        nextSection.style.transition = 
-            `transform ${FADE_IN_TIME}s cubic-bezier(0,.34,0,.95) ${FADE_IN_DELAY}s, 
-            opacity ${FADE_IN_TIME}s linear ${FADE_IN_DELAY}s,
-            scale ${FADE_IN_TIME + FADE_IN_FINISHER_DELAY}s ease ${FADE_IN_DELAY}s`;
-        nextSection.style.opacity = 1;
-        nextSection.style.transform = `scale(1) translateY(0px)`;
-    }, 0);
+    // fade in
+    if (dir) nextSection.style.animation = `fadeInDown ${FADE_IN_TIME}s cubic-bezier(.5,.47,.21,1.22) forwards ${FADE_IN_DELAY}s`;
+    else nextSection.style.animation = `fadeInUp ${FADE_IN_TIME}s cubic-bezier(.5,.47,.21,1.22) forwards ${FADE_IN_DELAY}s`;
 };
 
 /**
@@ -94,7 +80,7 @@ const handleKeyboardScroll = async (event) => {
     }
     if (["ArrowUp", "ArrowLeft"].indexOf(event.key) > -1 && currentSectionIndex > 0) {
         let nextSection = sections[currentSectionIndex - 1];
-        handleScroll(currentSection, nextSection, -1);
+        handleScroll(currentSection, nextSection, 0);
         currentSectionIndex -= 1;
         currentSection = nextSection;
     }
@@ -114,7 +100,7 @@ const handleMouseScroll = (event) => {
     }
     if (event.deltaY < -SCROLL_TRSHOLD && currentSectionIndex > 0) {
         let nextSection = sections[currentSectionIndex - 1];
-        handleScroll(currentSection, nextSection, -1);
+        handleScroll(currentSection, nextSection, 0);
         currentSectionIndex -= 1;
         currentSection = nextSection;
     }
@@ -146,7 +132,7 @@ const handleTouchMove = (event) => {
     }
     if (swipeDiffY < -SWIPE_TRSHOLD && currentSectionIndex > 0) {
         let nextSection = sections[currentSectionIndex - 1];
-        handleScroll(currentSection, nextSection, -1);
+        handleScroll(currentSection, nextSection, 0);
         currentSectionIndex -= 1;
         currentSection = nextSection;
     }

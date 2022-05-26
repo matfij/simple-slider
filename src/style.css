@@ -1,3 +1,8 @@
+:root {
+    --fade-out-distance: 1600px;
+    --fade-in-distance: 1200px;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -53,4 +58,86 @@ body {
 .section-content img {
     max-width: 100%;
     max-height: 100%;
+}
+
+/**
+ * Animations scroll down
+ */
+@keyframes fadeOutDown {
+    0% {
+        opacity: 1;
+        transform: translateY(0px);
+    }
+
+    50% {
+        opacity: 0;
+    }
+    
+    100% {
+        opacity: 0;
+        transform: scale(0.5);
+        transform: translateY(calc(-1 * var(--fade-out-distance)));
+    }
+}
+
+@keyframes fadeInDown {
+    0% {
+        opacity: 0;
+        transform: translateY(var(--fade-in-distance)) scale(0.9);
+    }
+
+    60% {
+        opacity: 0.4;
+    }
+    
+    80% {
+        opacity: 0.7;
+        transform: translateY(calc(var(--fade-in-distance) / 15)) scale(0.95);
+    }
+    
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1.0);
+    }
+}
+
+/**
+ * Animations scroll up
+ */
+@keyframes fadeOutUp {
+    0% {
+        opacity: 1;
+        transform: translateY(0px);
+    }
+
+    50% {
+        opacity: 0;
+    }
+    
+    100% {
+        opacity: 0;
+        transform: scale(0.5);
+        transform: translateY(var(--fade-out-distance));
+    }
+}
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(calc(-1 * var(--fade-in-distance))) scale(0.9);
+    }
+
+    60% {
+        opacity: 0.4;
+    }
+    
+    80% {
+        opacity: 0.7;
+        transform: translateY(calc(var(--fade-in-distance) / -15)) scale(0.95);
+    }
+    
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1.0);
+    }
 }

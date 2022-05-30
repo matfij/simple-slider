@@ -2,12 +2,11 @@
  * Config
  */
 
-const FADE_OUT_TIME = 4.5;
-const FADE_IN_TIME = 4.5;
-const FADE_IN_DELAY = 2.0;
-const FADE_IN_FINISHER_DELAY = 1;
+const FADE_OUT_TIME = 2;
+const FADE_IN_TIME = 2;
+const FADE_IN_DELAY = 1;
 
-const LOCK_TIME = 500;
+const LOCK_TIME = 0.5;
 
 const SCROLL_TRSHOLD = 1;
 const SWIPE_TRSHOLD = 1;
@@ -18,6 +17,7 @@ const SWIPE_TRSHOLD = 1;
 
 let currentSection = null;
 let currentSectionIndex = 0;
+let sectionsWrapper = null;
 let sections = [];
 let canScroll = true;
 let fadeOutInterval = null;
@@ -31,8 +31,8 @@ const setup = () => {
     currentSection = sections[currentSectionIndex];
     currentSection.style.opacity = 1;
 
-    let mainWrapper = document.getElementById("wrapper-sections");
-        mainWrapper.addEventListener("wheel", (event) => {
+    sectionsWrapper = document.getElementById("wrapper-sections");
+    sectionsWrapper.addEventListener("wheel", (event) => {
         handleMouseScroll(event);
     });
 };
@@ -44,7 +44,7 @@ const resetState = () => {
 };
 
 const resetScroll = () => {
-    setTimeout(() => { canScroll = true; }, LOCK_TIME);
+    setTimeout(() => { canScroll = true; }, 1000 * LOCK_TIME);
 };
 
 /**
@@ -54,10 +54,23 @@ const resetScroll = () => {
 const handleScroll = async (currentSection, nextSection, dir = 1) => {
     resetState();
     currentSection.style.opacity = 1;
+
+    let clone = currentSection.cloneNode(true);
+    clone.id = 'tempSection';
+    sectionsWrapper.appendChild(clone);
     
     // fade out
-    if (dir) currentSection.style.animation = `fadeOutDown ${FADE_OUT_TIME}s cubic-bezier(.86,.24,.24,.94) forwards 0s`;
-    else currentSection.style.animation = `fadeOutUp ${FADE_OUT_TIME}s cubic-bezier(.86,.24,.24,.94) forwards 0s`;
+    if (dir) {
+        currentSection.style.animation = `fadeOutDown ${FADE_OUT_TIME}s cubic-bezier(.86,.24,.24,.94) forwards 0s`;
+        clone.style.animation = `fadeOutDownSide ${FADE_OUT_TIME}s linear forwards 0s`;
+    }
+    else {
+        currentSection.style.animation = `fadeOutUp ${FADE_OUT_TIME}s cubic-bezier(.86,.24,.24,.94) forwards 0s`;
+        clone.style.animation = `fadeOutUpSide ${FADE_OUT_TIME}s linear forwards 0s`;
+    }
+    setTimeout(() => {
+        sectionsWrapper.removeChild(clone);
+    }, 1000 * FADE_OUT_TIME);
 
     // fade in
     if (dir) nextSection.style.animation = `fadeInDown ${FADE_IN_TIME}s cubic-bezier(.5,.47,.21,1.22) forwards ${FADE_IN_DELAY}s`;

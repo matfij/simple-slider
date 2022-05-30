@@ -33,7 +33,7 @@ body {
     height: 100%;
     margin: auto;
     overflow: hidden;
-    background-color: rgb(31, 36, 48);
+    /* background-color: rgb(31, 36, 48); */
 }
 
 .section-content {
@@ -63,12 +63,14 @@ body {
 /**
  * Animations scroll down
  */
+
 @keyframes fadeOutDown {
     0% {
+        z-index: 10;
         opacity: 1;
         transform: translateY(0px);
     }
-
+    
     50% {
         opacity: 0;
     }
@@ -80,8 +82,23 @@ body {
     }
 }
 
+@keyframes fadeOutDownSide {
+    0% {
+        z-index: 5;
+        opacity: 0.5;
+        transform: translateX(0px);
+    }
+    
+    100% {
+        opacity: 0;
+        transform: scale(0.5);
+        transform: translateX(calc(-1 * var(--fade-out-distance)));
+    }
+}
+
 @keyframes fadeInDown {
     0% {
+        z-index: 15;
         opacity: 0;
         transform: translateY(var(--fade-in-distance)) scale(0.9);
     }
@@ -104,8 +121,10 @@ body {
 /**
  * Animations scroll up
  */
+
 @keyframes fadeOutUp {
     0% {
+        z-index: 10;
         opacity: 1;
         transform: translateY(0px);
     }
@@ -121,8 +140,23 @@ body {
     }
 }
 
+@keyframes fadeOutUpSide {
+    0% {
+        z-index: 5;
+        opacity: 0.5;
+        transform: translateX(0px);
+    }
+    
+    100% {
+        opacity: 0;
+        transform: scale(0.5);
+        transform: translateX(calc(1 * var(--fade-out-distance)));
+    }
+}
+
 @keyframes fadeInUp {
     0% {
+        z-index: 15;
         opacity: 0;
         transform: translateY(calc(-1 * var(--fade-in-distance))) scale(0.9);
     }

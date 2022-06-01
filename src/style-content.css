@@ -1,0 +1,18 @@
+.wrapper-content {
+    width: 100vw;
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    background-color: rgb(119, 179, 138);
+}
+
+.item-block {
+    width: 80%;
+    margin: 20px auto;
+
+    padding: 10px;
+    border: 2px solid black;
+    font-size: 2rem;
+}

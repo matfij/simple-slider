@@ -2,9 +2,9 @@
  * Config
  */
 
-const FADE_OUT_TIME = 6;
-const FADE_IN_TIME = 6;
-const FADE_IN_DELAY = 2;
+const FADE_OUT_TIME = 3;
+const FADE_IN_TIME = 3;
+const FADE_IN_DELAY = 1;
 
 const LOCK_TIME = 0.5;
 
@@ -26,33 +26,40 @@ const FADE_IN_FUNC = FADE_INOUT_FUNCS[3];
  * State
  */
 
-let currentSection = null;
-let currentSectionIndex = 0;
-let sectionsWrapper = null;
-let sections = [];
-let sectionsLen = 0;
+// { currentSection: s1, currentSectionIndex = 0, wrapper: element, sections: [s1, s2 ...], sectionsLen: 3 }
+let presentations = []; 
+
 let canScroll = true;
 let fadeOutInterval = null;
 let fadeInInterval = null;
 let swipeStartY = null;
 
 const setup = () => {
-    sections = document.getElementsByClassName('section');
-    sectionsLen = sections.length;
-    resetState();
+    [].forEach.call(document.getElementsByClassName('wrapper-sections'), element => {
+        const presentation = {
+            currentSection: null,
+            currentSectionIndex: 0,
+            wrapper: element,
+            sections: element.getElementsByClassName('section'),
+            sectionsLen: 0
+        };
+        presentation.currentSection = presentation.sections[presentation.currentSectionIndex];
+        presentation.sectionsLen = presentation.sections.length;
+        
+        resetState(presentation);
+        presentation.currentSection.style.opacity = 1;
 
-    currentSection = sections[currentSectionIndex];
-    currentSection.style.opacity = 1;
+        presentation.wrapper.addEventListener('wheel', (event) => {
+            handleMouseScroll(event);
+        });
 
-    sectionsWrapper = document.getElementById('wrapper-sections');
-    sectionsWrapper.addEventListener('wheel', (event) => {
-        handleMouseScroll(event);
+        presentations.push(presentation);
     });
 };
 
-const resetState = () => {
-    for (let ind = 0; ind < sectionsLen; ind++) {
-        sections[ind].style.opacity = 0;
+const resetState = (presentation) => {
+    for (let ind = 0; ind < presentation.sectionsLen; ind++) {
+        presentation.sections[ind].style.opacity = 0;
     }
 };
 
@@ -64,14 +71,14 @@ const resetScroll = () => {
  * Scroll animations
  */
 
-const handleScroll = async (currentSection, nextSection, dir = 1) => {
-    resetState();
+const handleScroll = async (presentation, currentSection, nextSection, dir = 1) => {
+    resetState(presentation);
     currentSection.style.opacity = 1;
 
     let cloneBg = currentSection.cloneNode(true);
     cloneBg.id = 'tempSectionSide';
     cloneBg.classList.add('copy-bg');
-    sectionsWrapper.appendChild(cloneBg);
+    presentation.wrapper.appendChild(cloneBg);
     
     // fade out
     if (dir) {
@@ -83,7 +90,7 @@ const handleScroll = async (currentSection, nextSection, dir = 1) => {
         cloneBg.style.animation = `fadeOutUpBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
     }
     setTimeout(() => {
-        sectionsWrapper.removeChild(cloneBg);
+        presentation.wrapper.removeChild(cloneBg);
     }, 1000 * FADE_OUT_TIME);
 
     // fade in
@@ -97,19 +104,39 @@ const handleScroll = async (currentSection, nextSection, dir = 1) => {
 
 const handleKeyboardScroll = async (event) => {
     if (!canScroll) return;
-    canScroll = false;
+    // canScroll = false;
 
-    if ([' ', 'Space', 'ArrowDown', 'ArrowRight'].indexOf(event.key) > -1 && currentSectionIndex < sectionsLen - 1) {
-        let nextSection = sections[currentSectionIndex + 1];
-        handleScroll(currentSection, nextSection, 1);
-        currentSectionIndex += 1;
-        currentSection = nextSection;
+    console.log(event)
+
+    let presentation = null;
+    for (let ind = 0; ind < presentations.length; ind++) {
+        if (presentations[ind].wrapper === event.target || presentations[ind].wrapper.contains(event.target)) {
+            presentation = presentations[ind];
+            break;
+        }
     }
-    if (['ArrowUp', 'ArrowLeft'].indexOf(event.key) > -1 && currentSectionIndex > 0) {
-        let nextSection = sections[currentSectionIndex - 1];
-        handleScroll(currentSection, nextSection, 0);
-        currentSectionIndex -= 1;
-        currentSection = nextSection;
+
+    if (
+        !presentation
+        || presentation.currentSectionIndex > presentation.sectionsLen - 1
+        || presentation.currentSectionIndex < 0
+    ) return;
+    event.preventDefault();
+    setTimeout(() => {
+        presentation.wrapper.scrollIntoView({behavior: 'smooth', block: 'end', inline: 'nearest'});
+    }, 0);
+
+    if ([' ', 'Space', 'ArrowDown', 'ArrowRight'].indexOf(event.key) > -1 && presentation.currentSectionIndex < presentation.sectionsLen - 1) {
+        let nextSection = presentation.sections[presentation.currentSectionIndex + 1];
+        handleScroll(presentation, presentation.currentSection, nextSection, 1);
+        presentation.currentSectionIndex += 1;
+        presentation.currentSection = nextSection;
+    }
+    if (['ArrowUp', 'ArrowLeft'].indexOf(event.key) > -1 && presentation.currentSectionIndex > 0) {
+        let nextSection = presentation.sections[presentation.currentSectionIndex - 1];
+        handleScroll(presentation, presentation.currentSection, nextSection, 0);
+        presentation.currentSectionIndex -= 1;
+        presentation.currentSection = nextSection;
     }
 
     resetScroll();
@@ -119,17 +146,35 @@ const handleMouseScroll = (event) => {
     if (!canScroll) return;
     canScroll = false;
 
-    if (event.deltaY > SCROLL_TRSHOLD && currentSectionIndex < sectionsLen - 1) {
-        let nextSection = sections[currentSectionIndex + 1];
-        handleScroll(currentSection, nextSection, 1);
-        currentSectionIndex += 1;
-        currentSection = nextSection;
+    let presentation = null;
+    for (let ind = 0; ind < presentations.length; ind++) {
+        if (presentations[ind].wrapper === event.target || presentations[ind].wrapper.contains(event.target)) {
+            presentation = presentations[ind];
+            break;
+        }
     }
-    if (event.deltaY < -SCROLL_TRSHOLD && currentSectionIndex > 0) {
-        let nextSection = sections[currentSectionIndex - 1];
-        handleScroll(currentSection, nextSection, 0);
-        currentSectionIndex -= 1;
-        currentSection = nextSection;
+
+    if (
+        !presentation
+        || presentation.currentSectionIndex > presentation.sectionsLen - 1
+        || presentation.currentSectionIndex < 0
+    ) return;
+    event.preventDefault();
+    setTimeout(() => {
+        presentation.wrapper.scrollIntoView({behavior: 'smooth', block: 'end', inline: 'nearest'});
+    }, 100);
+
+    if (event.deltaY > SCROLL_TRSHOLD && presentation.currentSectionIndex < presentation.sectionsLen - 1) {
+        let nextSection = presentation.sections[presentation.currentSectionIndex + 1];
+        handleScroll(presentation, presentation.currentSection, nextSection, 1);
+        presentation.currentSectionIndex += 1;
+        presentation.currentSection = nextSection;
+    }
+    if (event.deltaY < -SCROLL_TRSHOLD && presentation.currentSectionIndex > 0) {
+        let nextSection = presentation.sections[presentation.currentSectionIndex - 1];
+        handleScroll(presentation, presentation.currentSection, nextSection, 0);
+        presentation.currentSectionIndex -= 1;
+        presentation.currentSection = nextSection;
     }
 
     resetScroll();

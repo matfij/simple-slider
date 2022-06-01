@@ -30,26 +30,28 @@ let currentSection = null;
 let currentSectionIndex = 0;
 let sectionsWrapper = null;
 let sections = [];
+let sectionsLen = 0;
 let canScroll = true;
 let fadeOutInterval = null;
 let fadeInInterval = null;
 let swipeStartY = null;
 
 const setup = () => {
-    sections = document.getElementsByClassName("section");
+    sections = document.getElementsByClassName('section');
+    sectionsLen = sections.length;
     resetState();
 
     currentSection = sections[currentSectionIndex];
     currentSection.style.opacity = 1;
 
-    sectionsWrapper = document.getElementById("wrapper-sections");
-    sectionsWrapper.addEventListener("wheel", (event) => {
+    sectionsWrapper = document.getElementById('wrapper-sections');
+    sectionsWrapper.addEventListener('wheel', (event) => {
         handleMouseScroll(event);
     });
 };
 
 const resetState = () => {
-    for (let ind = 0; ind < sections.length; ind++) {
+    for (let ind = 0; ind < sectionsLen; ind++) {
         sections[ind].style.opacity = 0;
     }
 };
@@ -97,13 +99,13 @@ const handleKeyboardScroll = async (event) => {
     if (!canScroll) return;
     canScroll = false;
 
-    if ([" ", "Space", "ArrowDown", "ArrowRight"].indexOf(event.key) > -1 && currentSectionIndex < sections.length - 1) {
+    if ([' ', 'Space', 'ArrowDown', 'ArrowRight'].indexOf(event.key) > -1 && currentSectionIndex < sectionsLen - 1) {
         let nextSection = sections[currentSectionIndex + 1];
         handleScroll(currentSection, nextSection, 1);
         currentSectionIndex += 1;
         currentSection = nextSection;
     }
-    if (["ArrowUp", "ArrowLeft"].indexOf(event.key) > -1 && currentSectionIndex > 0) {
+    if (['ArrowUp', 'ArrowLeft'].indexOf(event.key) > -1 && currentSectionIndex > 0) {
         let nextSection = sections[currentSectionIndex - 1];
         handleScroll(currentSection, nextSection, 0);
         currentSectionIndex -= 1;
@@ -117,7 +119,7 @@ const handleMouseScroll = (event) => {
     if (!canScroll) return;
     canScroll = false;
 
-    if (event.deltaY > SCROLL_TRSHOLD && currentSectionIndex < sections.length - 1) {
+    if (event.deltaY > SCROLL_TRSHOLD && currentSectionIndex < sectionsLen - 1) {
         let nextSection = sections[currentSectionIndex + 1];
         handleScroll(currentSection, nextSection, 1);
         currentSectionIndex += 1;
@@ -169,14 +171,14 @@ const handleTouchMove = (event) => {
  * Initialization
  */
 
-window.addEventListener("keydown", (event) => {
-    if ([" ", "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(event.code) > -1) {
+window.addEventListener('keydown', (event) => {
+    if ([' ', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].indexOf(event.code) > -1) {
         event.preventDefault();
     }
     }, false
 );
 
-window.addEventListener("load", setup);
-window.addEventListener("keydown", handleKeyboardScroll);
-document.addEventListener("touchstart", handleTouchStart, false);
-document.addEventListener("touchmove", handleTouchMove, false);
+window.addEventListener('load', setup);
+window.addEventListener('keydown', handleKeyboardScroll);
+document.addEventListener('touchstart', handleTouchStart, false);
+document.addEventListener('touchmove', handleTouchMove, false);

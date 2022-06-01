@@ -88,7 +88,7 @@ body {
 
 .copy-bg {
     z-index: 5;
-    filter: blur(3px);
+    filter: blur(2px);
 }
 .copy-bg img {
     width: 100%;
@@ -164,7 +164,6 @@ body {
     
     100% {
         opacity: 0;
-        transform: scale(0.5);
         transform: translateY(var(--fade-out-distance));
     }
 }

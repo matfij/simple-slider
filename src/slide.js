@@ -2,14 +2,25 @@
  * Config
  */
 
-const FADE_OUT_TIME = 2;
-const FADE_IN_TIME = 2;
-const FADE_IN_DELAY = 1;
+const FADE_OUT_TIME = 6;
+const FADE_IN_TIME = 6;
+const FADE_IN_DELAY = 2;
 
 const LOCK_TIME = 0.5;
 
 const SCROLL_TRSHOLD = 1;
 const SWIPE_TRSHOLD = 1;
+
+const FADE_INOUT_FUNCS = [
+    'cubic-bezier(.58,.45,.41,.56)',  // lin
+    'cubic-bezier(.37,.02,.45,.96)', // ease in out
+    'cubic-bezier(.64,.42,.41,1)', // ease out +
+    'cubic-bezier(.63,-0.03,.02,1.01)', // ease out ++
+    'cubic-bezier(.37,.02,.26,1.37)', // bounce
+];
+const FADE_OUT_FUNC = FADE_INOUT_FUNCS[3];
+const FADE_OUT_BG_FUNC = FADE_INOUT_FUNCS[0];
+const FADE_IN_FUNC = FADE_INOUT_FUNCS[3];
 
 /**
  * State
@@ -55,26 +66,27 @@ const handleScroll = async (currentSection, nextSection, dir = 1) => {
     resetState();
     currentSection.style.opacity = 1;
 
-    let clone = currentSection.cloneNode(true);
-    clone.id = 'tempSection';
-    sectionsWrapper.appendChild(clone);
+    let cloneBg = currentSection.cloneNode(true);
+    cloneBg.id = 'tempSectionSide';
+    cloneBg.classList.add('copy-bg');
+    sectionsWrapper.appendChild(cloneBg);
     
     // fade out
     if (dir) {
-        currentSection.style.animation = `fadeOutDown ${FADE_OUT_TIME}s cubic-bezier(.86,.24,.24,.94) forwards 0s`;
-        clone.style.animation = `fadeOutDownSide ${FADE_OUT_TIME}s linear forwards 0s`;
+        currentSection.style.animation = `fadeOutDown ${FADE_OUT_TIME}s ${FADE_OUT_FUNC} forwards 0s`;
+        cloneBg.style.animation = `fadeOutDownBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
     }
     else {
-        currentSection.style.animation = `fadeOutUp ${FADE_OUT_TIME}s cubic-bezier(.86,.24,.24,.94) forwards 0s`;
-        clone.style.animation = `fadeOutUpSide ${FADE_OUT_TIME}s linear forwards 0s`;
+        currentSection.style.animation = `fadeOutUp ${FADE_OUT_TIME}s ${FADE_OUT_FUNC} forwards 0s`;
+        cloneBg.style.animation = `fadeOutUpBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
     }
     setTimeout(() => {
-        sectionsWrapper.removeChild(clone);
+        sectionsWrapper.removeChild(cloneBg);
     }, 1000 * FADE_OUT_TIME);
 
     // fade in
-    if (dir) nextSection.style.animation = `fadeInDown ${FADE_IN_TIME}s cubic-bezier(.5,.47,.21,1.22) forwards ${FADE_IN_DELAY}s`;
-    else nextSection.style.animation = `fadeInUp ${FADE_IN_TIME}s cubic-bezier(.5,.47,.21,1.22) forwards ${FADE_IN_DELAY}s`;
+    if (dir) nextSection.style.animation = `fadeInDown ${FADE_IN_TIME}s ${FADE_IN_FUNC} forwards ${FADE_IN_DELAY}s`;
+    else nextSection.style.animation = `fadeInUp ${FADE_IN_TIME}s ${FADE_IN_FUNC} forwards ${FADE_IN_DELAY}s`;
 };
 
 /**

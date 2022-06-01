@@ -1,6 +1,10 @@
 :root {
-    --fade-out-distance: 1600px;
-    --fade-in-distance: 1200px;
+    --fade-out-distance: 100%;
+    --fade-in-distance: 100%;
+
+    --img-pad-lg: 5%;
+    --img-pad-md: 10%;
+    --img-pad-sm: 30%;
 }
 
 body {
@@ -48,7 +52,7 @@ body {
     justify-content: center;
     overflow: hidden;
 
-    padding: 1rem;
+    padding: 0rem;
     font-size: 2rem;
     line-height: 1.25;
     letter-spacing: 0.5px;
@@ -60,6 +64,38 @@ body {
     max-height: 100%;
 }
 
+
+.img-full img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.img-lg img {
+    width: calc(100% - 2*var(--img-pad-lg));
+    height: calc(100% - 2*var(--img-pad-lg));
+    object-fit: contain;
+}
+.img-md img {
+    width: calc(100% - 2*var(--img-pad-md));
+    height: calc(100% - 2*var(--img-pad-md));
+    object-fit: contain;
+}
+.img-sm img {
+    width: calc(100% - 2*var(--img-pad-sm));
+    height: calc(100% - 2*var(--img-pad-sm));
+    object-fit: contain;
+}
+
+.copy-bg {
+    z-index: 5;
+    filter: blur(3px);
+}
+.copy-bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /**
  * Animations scroll down
  */
@@ -67,32 +103,38 @@ body {
 @keyframes fadeOutDown {
     0% {
         z-index: 10;
-        opacity: 1;
+        opacity: 0.5;
         transform: translateY(0px);
-    }
-    
-    50% {
-        opacity: 0;
     }
     
     100% {
         opacity: 0;
-        transform: scale(0.5);
         transform: translateY(calc(-1 * var(--fade-out-distance)));
     }
 }
 
-@keyframes fadeOutDownSide {
+@keyframes fadeOutDownBg {
     0% {
-        z-index: 5;
-        opacity: 0.5;
-        transform: translateX(0px);
+        opacity: 0.0;
+        transform: translate(calc(-1 * var(--fade-out-distance)), calc(-0.15 * var(--fade-out-distance)));
+    }
+
+    25% {
+        opacity: 0.02;
+    }
+
+    50% {
+        opacity: 0.25;
+        transform: translate(0, 0);
+    }
+
+    75% {
+        opacity: 0.02;
     }
     
     100% {
-        opacity: 0;
-        transform: scale(0.5);
-        transform: translateX(calc(-1 * var(--fade-out-distance)));
+        opacity: 0.0;
+        transform: translate(calc(1 * var(--fade-out-distance)), calc(0.15 * var(--fade-out-distance)));
     }
 }
 
@@ -101,15 +143,6 @@ body {
         z-index: 15;
         opacity: 0;
         transform: translateY(var(--fade-in-distance)) scale(0.9);
-    }
-
-    60% {
-        opacity: 0.4;
-    }
-    
-    80% {
-        opacity: 0.7;
-        transform: translateY(calc(var(--fade-in-distance) / 15)) scale(0.95);
     }
     
     100% {
@@ -125,12 +158,8 @@ body {
 @keyframes fadeOutUp {
     0% {
         z-index: 10;
-        opacity: 1;
+        opacity: 0.5;
         transform: translateY(0px);
-    }
-
-    50% {
-        opacity: 0;
     }
     
     100% {
@@ -140,17 +169,28 @@ body {
     }
 }
 
-@keyframes fadeOutUpSide {
+@keyframes fadeOutUpBg {
     0% {
-        z-index: 5;
-        opacity: 0.5;
-        transform: translateX(0px);
+        opacity: 0.0;
+        transform: translate(calc(1 * var(--fade-out-distance)), calc(0.15 * var(--fade-out-distance)));
+    }
+
+    25% {
+        opacity: 0.02;
+    }
+
+    50% {
+        opacity: 0.25;
+        transform: translate(0, 0);
+    }
+
+    75% {
+        opacity: 0.02;
     }
     
     100% {
-        opacity: 0;
-        transform: scale(0.5);
-        transform: translateX(calc(1 * var(--fade-out-distance)));
+        opacity: 0.0;
+        transform: translate(calc(-1 * var(--fade-out-distance)), calc(-0.15 * var(--fade-out-distance)));
     }
 }
 
@@ -159,15 +199,6 @@ body {
         z-index: 15;
         opacity: 0;
         transform: translateY(calc(-1 * var(--fade-in-distance))) scale(0.9);
-    }
-
-    60% {
-        opacity: 0.4;
-    }
-    
-    80% {
-        opacity: 0.7;
-        transform: translateY(calc(var(--fade-in-distance) / -15)) scale(0.95);
     }
     
     100% {

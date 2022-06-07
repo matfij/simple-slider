@@ -6,10 +6,12 @@ const FADE_OUT_TIME = 3;
 const FADE_IN_TIME = 3;
 const FADE_IN_DELAY = 1;
 
-const LOCK_TIME = 0.5;
+const LOCK_TIME = 1;
 
-const SCROLL_TRSHOLD = 1;
-const SWIPE_TRSHOLD = 1;
+const SCROLL_TRSHOLD = 10;
+const SWIPE_TRSHOLD = 10;
+
+const SCROLL_ACTION_THRESHOLD = 70;
 
 const FADE_INOUT_FUNCS = [
     'cubic-bezier(.58,.45,.41,.56)',  // lin
@@ -26,8 +28,9 @@ const FADE_IN_FUNC = FADE_INOUT_FUNCS[3];
  * State
  */
 
-// { currentSection: s1, currentSectionIndex = 0, wrapper: element, sections: [s1, s2 ...], sectionsLen: 3 }
-let presentations = []; 
+let allWrappers = [];
+let contentWrappers = [];
+let presentationWrappers = [];
 
 let canScroll = true;
 let fadeOutInterval = null;
@@ -35,6 +38,31 @@ let fadeInInterval = null;
 let swipeStartY = null;
 
 const setup = () => {
+    [].forEach.call(document.getElementsByClassName('wrapper'), element => {
+        const anyWrapper = {
+            wrapper: element,
+            sections: element.getElementsByClassName('block'),
+            sectionsLen: 0
+        };
+        anyWrapper.sectionsLen = anyWrapper.sections.length;
+
+        allWrappers.push(anyWrapper);
+    });
+
+    console.log(allWrappers);
+
+    [].forEach.call(document.getElementsByClassName('wrapper-content'), element => {
+        const contentWrapper = {
+            wrapper: element,
+            sections: element.getElementsByClassName('item-block'),
+            sectionsLen: 0
+        };
+        contentWrapper.currentSection = contentWrapper.sections[contentWrapper.currentSectionIndex];
+        contentWrapper.sectionsLen = contentWrapper.sections.length;
+
+        contentWrappers.push(contentWrapper);
+    });
+
     [].forEach.call(document.getElementsByClassName('wrapper-sections'), element => {
         const presentation = {
             currentSection: null,
@@ -45,22 +73,17 @@ const setup = () => {
         };
         presentation.currentSection = presentation.sections[presentation.currentSectionIndex];
         presentation.sectionsLen = presentation.sections.length;
-        
-        resetState(presentation);
-        presentation.currentSection.style.opacity = 1;
 
-        presentation.wrapper.addEventListener('wheel', (event) => {
-            handleMouseScroll(event);
-        });
+        // TODO - mobile
+        presentation.wrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
+        presentation.wrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
 
-        presentations.push(presentation);
+        presentationWrappers.push(presentation);
     });
-};
 
-const resetState = (presentation) => {
-    for (let ind = 0; ind < presentation.sectionsLen; ind++) {
-        presentation.sections[ind].style.opacity = 0;
-    }
+    document.body.addEventListener('wheel', (event) => {
+        handleMouseScroll(event);
+    }, { passive: false });
 };
 
 const resetScroll = () => {
@@ -72,30 +95,50 @@ const resetScroll = () => {
  */
 
 const handleScroll = async (presentation, currentSection, nextSection, dir = 1) => {
-    resetState(presentation);
-    currentSection.style.opacity = 1;
+    hideSlides(presentation);
+
+    let cloneCurrent = currentSection.cloneNode(true);
+    cloneCurrent.id = 'tempSectionCurrent';
+    cloneCurrent.classList.add('section-clone');
+    cloneCurrent.style.animation = `fadeOutDownBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forward 0s`;
+    presentation.wrapper.appendChild(cloneCurrent);
 
     let cloneBg = currentSection.cloneNode(true);
-    cloneBg.id = 'tempSectionSide';
+    cloneBg.id = 'tempSectionBg';
     cloneBg.classList.add('copy-bg');
+    cloneBg.classList.add('section-clone');
     presentation.wrapper.appendChild(cloneBg);
+    
+    let cloneNext = nextSection.cloneNode(true);
+    cloneNext.id = 'tempSectionNext';
+    cloneNext.classList.add('section-clone');
+    cloneNext.style.opacity = 0;
+    presentation.wrapper.appendChild(cloneNext);
     
     // fade out
     if (dir) {
-        currentSection.style.animation = `fadeOutDown ${FADE_OUT_TIME}s ${FADE_OUT_FUNC} forwards 0s`;
+        cloneCurrent.style.animation = `fadeOutDown ${FADE_OUT_TIME}s ${FADE_OUT_FUNC} 0s`;
         cloneBg.style.animation = `fadeOutDownBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
     }
     else {
-        currentSection.style.animation = `fadeOutUp ${FADE_OUT_TIME}s ${FADE_OUT_FUNC} forwards 0s`;
+        cloneCurrent.style.animation = `fadeOutUp ${FADE_OUT_TIME}s ${FADE_OUT_FUNC} 0s`;
         cloneBg.style.animation = `fadeOutUpBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
     }
     setTimeout(() => {
+        presentation.wrapper.removeChild(cloneCurrent);
         presentation.wrapper.removeChild(cloneBg);
+        currentSection.style.opacity = 0;
     }, 1000 * FADE_OUT_TIME);
-
+    
     // fade in
-    if (dir) nextSection.style.animation = `fadeInDown ${FADE_IN_TIME}s ${FADE_IN_FUNC} forwards ${FADE_IN_DELAY}s`;
-    else nextSection.style.animation = `fadeInUp ${FADE_IN_TIME}s ${FADE_IN_FUNC} forwards ${FADE_IN_DELAY}s`;
+    if (dir) cloneNext.style.animation = `fadeInDown ${FADE_IN_TIME}s ${FADE_IN_FUNC} ${FADE_IN_DELAY}s`;
+    else cloneNext.style.animation = `fadeInUp ${FADE_IN_TIME}s ${FADE_IN_FUNC} ${FADE_IN_DELAY}s`;
+    setTimeout(() => {
+        presentation.wrapper.removeChild(cloneNext);
+        nextSection.scrollIntoView();
+        
+        showSlides(presentation);
+    }, 100*FADE_OUT_TIME + 100*FADE_IN_DELAY + 1000*FADE_IN_TIME);
 };
 
 /**
@@ -103,85 +146,124 @@ const handleScroll = async (presentation, currentSection, nextSection, dir = 1) 
  */
 
 const handleKeyboardScroll = async (event) => {
-    if (!canScroll) return;
-    // canScroll = false;
-
-    console.log(event)
-
-    let presentation = null;
-    for (let ind = 0; ind < presentations.length; ind++) {
-        if (presentations[ind].wrapper === event.target || presentations[ind].wrapper.contains(event.target)) {
-            presentation = presentations[ind];
-            break;
-        }
+    if ([' ', 'Space', 'ArrowDown', 'ArrowRight'].indexOf(event.key) > -1) {
+        event['deltaY'] = 100;
+        handleMouseScroll(event);
     }
-
-    if (
-        !presentation
-        || presentation.currentSectionIndex > presentation.sectionsLen - 1
-        || presentation.currentSectionIndex < 0
-    ) return;
-    event.preventDefault();
-    setTimeout(() => {
-        presentation.wrapper.scrollIntoView({behavior: 'smooth', block: 'end', inline: 'nearest'});
-    }, 0);
-
-    if ([' ', 'Space', 'ArrowDown', 'ArrowRight'].indexOf(event.key) > -1 && presentation.currentSectionIndex < presentation.sectionsLen - 1) {
-        let nextSection = presentation.sections[presentation.currentSectionIndex + 1];
-        handleScroll(presentation, presentation.currentSection, nextSection, 1);
-        presentation.currentSectionIndex += 1;
-        presentation.currentSection = nextSection;
+    if (['ArrowUp', 'ArrowLeft'].indexOf(event.key) > -1) {
+        event['deltaY'] = -100;
+        handleMouseScroll(event);
     }
-    if (['ArrowUp', 'ArrowLeft'].indexOf(event.key) > -1 && presentation.currentSectionIndex > 0) {
-        let nextSection = presentation.sections[presentation.currentSectionIndex - 1];
-        handleScroll(presentation, presentation.currentSection, nextSection, 0);
-        presentation.currentSectionIndex -= 1;
-        presentation.currentSection = nextSection;
-    }
-
-    resetScroll();
 };
 
 const handleMouseScroll = (event) => {
-    if (!canScroll) return;
-    canScroll = false;
-
-    let presentation = null;
-    for (let ind = 0; ind < presentations.length; ind++) {
-        if (presentations[ind].wrapper === event.target || presentations[ind].wrapper.contains(event.target)) {
-            presentation = presentations[ind];
-            break;
-        }
-    }
-
-    if (
-        !presentation
-        || presentation.currentSectionIndex > presentation.sectionsLen - 1
-        || presentation.currentSectionIndex < 0
-    ) return;
-    event.preventDefault();
-    setTimeout(() => {
-        presentation.wrapper.scrollIntoView({behavior: 'smooth', block: 'end', inline: 'nearest'});
-    }, 100);
-
-    if (event.deltaY > SCROLL_TRSHOLD && presentation.currentSectionIndex < presentation.sectionsLen - 1) {
-        let nextSection = presentation.sections[presentation.currentSectionIndex + 1];
-        handleScroll(presentation, presentation.currentSection, nextSection, 1);
-        presentation.currentSectionIndex += 1;
-        presentation.currentSection = nextSection;
-    }
-    if (event.deltaY < -SCROLL_TRSHOLD && presentation.currentSectionIndex > 0) {
-        let nextSection = presentation.sections[presentation.currentSectionIndex - 1];
-        handleScroll(presentation, presentation.currentSection, nextSection, 0);
-        presentation.currentSectionIndex -= 1;
-        presentation.currentSection = nextSection;
-    }
-
     resetScroll();
+    if (Math.abs(event.deltaY) < SCROLL_ACTION_THRESHOLD) return;
+    if (!canScroll) return;
+
+    /**
+     * Regular section scroll
+     */
+    let contentWrapper = getContentWrapper(event, contentWrappers);
+
+    if (contentWrapper) {
+        let topBlockInd = 0;
+
+        // scroll down
+        if (event.deltaY > 0) {
+            for (let ind = 0; ind < contentWrapper.sectionsLen; ind++) {
+                if (contentWrapper.sections[ind].getBoundingClientRect().y < 10) {
+                    topBlock = contentWrapper.sections[ind];
+                    topBlockInd = ind;
+                }
+            }
+            try { event.preventDefault(); } catch (e) {}
+            if (0 <= topBlockInd && topBlockInd < contentWrapper.sectionsLen - 1) {
+                contentWrapper.sections[topBlockInd + 1].scrollIntoView({behavior: 'smooth'});
+            } else {
+                let currentWrapperInd = allWrappers.findIndex(w => w.wrapper.id === contentWrapper.wrapper.id);
+                if (0 <= currentWrapperInd && currentWrapperInd < allWrappers.length) {
+                    allWrappers[currentWrapperInd + 1].wrapper.scrollIntoView({behavior: 'smooth'});
+                }
+            }
+            return;
+        }
+        // scroll up 
+        else {
+            for (let ind = 0; ind < contentWrapper.sectionsLen; ind++) {
+                if (contentWrapper.sections[ind].getBoundingClientRect().y < 10) {
+                    topBlock = contentWrapper.sections[ind];
+                    topBlockInd = ind;
+                }
+            }
+            try { event.preventDefault(); } catch (e) {}
+            if (0 < topBlockInd && topBlockInd < contentWrapper.sectionsLen) {
+                contentWrapper.sections[topBlockInd - 1].scrollIntoView({behavior: 'smooth'});
+            } else {
+                let currentWrapperInd = allWrappers.findIndex(w => w.wrapper.id === contentWrapper.wrapper.id);
+                if (0 < currentWrapperInd && currentWrapperInd < allWrappers.length) {
+
+                    let targetWrapper = allWrappers[currentWrapperInd - 1].sections[allWrappers[currentWrapperInd - 1].sectionsLen - 1];
+                    targetWrapper.scrollIntoView({behavior: 'smooth'});
+                }
+            }
+        }
+        return;
+    }
+
+    /**
+     * Presentation section scroll
+     */
+    let presentationWrapper = getPresentationWrapper(event, presentationWrappers);
+    
+    if (presentationWrapper) {
+        canScroll = false;
+        try { event.preventDefault(); } catch (e) {}
+
+        let topSlide = null;
+        let topSlideInd = 0;
+        for (let ind = 0; ind < presentationWrapper.sectionsLen; ind++) {
+            if (presentationWrapper.sections[ind].getBoundingClientRect().y < 10) {
+                topSlide = presentationWrapper.sections[ind];
+                topSlideInd = ind;
+            }
+        }
+
+        // scroll down
+        if (event.deltaY > 0) {
+            if (0 <= topSlideInd && topSlideInd < presentationWrapper.sectionsLen - 1) {
+                let currentSection = presentationWrapper.sections[topSlideInd];
+                let nextSection = presentationWrapper.sections[topSlideInd + 1];
+                scrollTo(presentationWrapper.wrapper);
+                handleScroll(presentationWrapper, currentSection, nextSection, 1);
+            } else {
+                let currentWrapperInd = allWrappers.findIndex(w => w.wrapper.id === presentationWrapper.wrapper.id);
+                if (0 <= currentWrapperInd && currentWrapperInd < allWrappers.length - 1) {
+                    allWrappers[currentWrapperInd + 1].wrapper.scrollIntoView({behavior: 'smooth'});
+                }
+            }
+        }
+        // scroll up
+        else {
+            if (0 < topSlideInd && topSlideInd <= presentationWrapper.sectionsLen - 1) {
+                let currentSection = presentationWrapper.sections[topSlideInd];
+                let nextSection = presentationWrapper.sections[topSlideInd - 1];
+                scrollTo(presentationWrapper.wrapper);
+                handleScroll(presentationWrapper, currentSection, nextSection, 0);
+            } else {
+                let currentWrapperInd = allWrappers.findIndex(w => w.wrapper.id === presentationWrapper.wrapper.id);
+                if (0 < currentWrapperInd && currentWrapperInd < allWrappers.length) {
+                    let targetWrapper = allWrappers[currentWrapperInd - 1].sections[allWrappers[currentWrapperInd - 1].sectionsLen - 1];
+                    targetWrapper.scrollIntoView({behavior: 'smooth'});
+                }
+            }
+        }
+        return;
+    }
 };
 
 /**
- * Mobile scroll (swipe)
+ * Mobile swipe
  */
 
 const handleTouchStart = (event) => {
@@ -190,23 +272,43 @@ const handleTouchStart = (event) => {
 };
  
 const handleTouchMove = (event) => {
+    return;
     if (!swipeStartY || !canScroll) return;
-    canScroll = false;
 
     var swipeEndY = event.touches[0].clientY;
     var swipeDiffY = swipeStartY - swipeEndY;
 
-    if (swipeDiffY > SWIPE_TRSHOLD && currentSectionIndex < sections.length - 1) {
-        let nextSection = sections[currentSectionIndex + 1];
-        handleScroll(currentSection, nextSection, 1);
-        currentSectionIndex += 1;
-        currentSection = nextSection;
+    let presentation = null;
+    for (let ind = 0; ind < presentationWrappers.length; ind++) {
+        if (presentationWrappers[ind].wrapper === event.target || presentationWrappers[ind].wrapper.contains(event.target)) {
+            presentation = presentationWrappers[ind];
+            break;
+        }
     }
-    if (swipeDiffY < -SWIPE_TRSHOLD && currentSectionIndex > 0) {
-        let nextSection = sections[currentSectionIndex - 1];
-        handleScroll(currentSection, nextSection, 0);
-        currentSectionIndex -= 1;
-        currentSection = nextSection;
+
+    if (
+        !presentation
+        || (swipeDiffY > SCROLL_TRSHOLD && presentation.currentSectionIndex >= presentation.sectionsLen - 1)
+        || (swipeDiffY < -SCROLL_TRSHOLD && presentation.currentSectionIndex <= 0)
+    ) return;
+    
+    canScroll = false;
+    try { event.preventDefault(); } catch (e) {}
+    setTimeout(() => {
+        presentation.sections[0].scrollIntoView(true);
+    }, 100);
+
+    if (swipeDiffY > SWIPE_TRSHOLD && presentation.currentSectionIndex < presentation.sectionsLen - 1) {
+        let nextSection = presentation.sections[presentation.currentSectionIndex + 1];
+        handleScroll(presentation, presentation.currentSection, nextSection, 1);
+        presentation.currentSectionIndex += 1;
+        presentation.currentSection = nextSection;
+    }
+    if (swipeDiffY < -SWIPE_TRSHOLD && presentation.currentSectionIndex > 0) {
+        let nextSection = presentation.sections[presentation.currentSectionIndex - 1];
+        handleScroll(presentation, presentation.currentSection, nextSection, 0);
+        presentation.currentSectionIndex -= 1;
+        presentation.currentSection = nextSection;
     }
 
     resetScroll();
@@ -225,5 +327,3 @@ window.addEventListener('keydown', (event) => {
 
 window.addEventListener('load', setup);
 window.addEventListener('keydown', handleKeyboardScroll);
-document.addEventListener('touchstart', handleTouchStart, false);
-document.addEventListener('touchmove', handleTouchMove, false);

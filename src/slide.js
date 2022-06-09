@@ -2,16 +2,17 @@
  * Config
  */
 
-const FADE_OUT_TIME = 3;
-const FADE_IN_TIME = 3;
-const FADE_IN_DELAY = 1;
+const FADE_OUT_TIME = 2;
+const FADE_IN_TIME = 2;
+const FADE_IN_DELAY = 0.5;
 
-const LOCK_TIME = 1;
+const LOCK_TIME = 2;
+const SHORT_LOCK_TIME = 0.5;
 
 const SCROLL_TRSHOLD = 10;
 const SWIPE_TRSHOLD = 10;
 
-const SCROLL_ACTION_THRESHOLD = 70;
+const SCROLL_ACTION_THRESHOLD = 40;
 
 const FADE_INOUT_FUNCS = [
     'cubic-bezier(.58,.45,.41,.56)',  // lin
@@ -36,6 +37,10 @@ let canScroll = true;
 let fadeOutInterval = null;
 let fadeInInterval = null;
 let swipeStartY = null;
+let scrollResetter = null;
+let inShortTransition = false;
+let inLongTransition = false;
+let capturingScroll = false;
 
 const setup = () => {
     [].forEach.call(document.getElementsByClassName('wrapper'), element => {
@@ -48,8 +53,6 @@ const setup = () => {
 
         allWrappers.push(anyWrapper);
     });
-
-    console.log(allWrappers);
 
     [].forEach.call(document.getElementsByClassName('wrapper-content'), element => {
         const contentWrapper = {
@@ -82,12 +85,12 @@ const setup = () => {
     });
 
     document.body.addEventListener('wheel', (event) => {
-        handleMouseScroll(event);
+        throttle(handleMouseScroll(event), 1000)
     }, { passive: false });
 };
 
 const resetScroll = () => {
-    setTimeout(() => { canScroll = true; }, 1000 * LOCK_TIME);
+    scrollResetter = setTimeout(() => { canScroll = true; }, 1000 * LOCK_TIME);
 };
 
 /**
@@ -96,18 +99,18 @@ const resetScroll = () => {
 
 const handleScroll = async (presentation, currentSection, nextSection, dir = 1) => {
     hideSlides(presentation);
-
+    
     let cloneCurrent = currentSection.cloneNode(true);
     cloneCurrent.id = 'tempSectionCurrent';
     cloneCurrent.classList.add('section-clone');
     cloneCurrent.style.animation = `fadeOutDownBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forward 0s`;
     presentation.wrapper.appendChild(cloneCurrent);
-
-    let cloneBg = currentSection.cloneNode(true);
-    cloneBg.id = 'tempSectionBg';
-    cloneBg.classList.add('copy-bg');
-    cloneBg.classList.add('section-clone');
-    presentation.wrapper.appendChild(cloneBg);
+    
+    // let cloneBg = currentSection.cloneNode(true);
+    // cloneBg.id = 'tempSectionBg';
+    // cloneBg.classList.add('copy-bg');
+    // cloneBg.classList.add('section-clone');
+    // presentation.wrapper.appendChild(cloneBg);
     
     let cloneNext = nextSection.cloneNode(true);
     cloneNext.id = 'tempSectionNext';
@@ -118,27 +121,28 @@ const handleScroll = async (presentation, currentSection, nextSection, dir = 1) 
     // fade out
     if (dir) {
         cloneCurrent.style.animation = `fadeOutDown ${FADE_OUT_TIME}s ${FADE_OUT_FUNC} 0s`;
-        cloneBg.style.animation = `fadeOutDownBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
+        // cloneBg.style.animation = `fadeOutDownBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
     }
     else {
         cloneCurrent.style.animation = `fadeOutUp ${FADE_OUT_TIME}s ${FADE_OUT_FUNC} 0s`;
-        cloneBg.style.animation = `fadeOutUpBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
+        // cloneBg.style.animation = `fadeOutUpBg ${FADE_OUT_TIME}s ${FADE_OUT_BG_FUNC} forwards 0s`;
     }
     setTimeout(() => {
         presentation.wrapper.removeChild(cloneCurrent);
-        presentation.wrapper.removeChild(cloneBg);
+        // presentation.wrapper.removeChild(cloneBg);
         currentSection.style.opacity = 0;
     }, 1000 * FADE_OUT_TIME);
     
     // fade in
-    if (dir) cloneNext.style.animation = `fadeInDown ${FADE_IN_TIME}s ${FADE_IN_FUNC} ${FADE_IN_DELAY}s`;
-    else cloneNext.style.animation = `fadeInUp ${FADE_IN_TIME}s ${FADE_IN_FUNC} ${FADE_IN_DELAY}s`;
+    if (dir) cloneNext.style.animation = `fadeInDown ${FADE_IN_TIME}s ${FADE_IN_FUNC} forwards ${FADE_IN_DELAY}s`;
+    else cloneNext.style.animation = `fadeInUp ${FADE_IN_TIME}s ${FADE_IN_FUNC} forwards ${FADE_IN_DELAY}s`;
     setTimeout(() => {
         presentation.wrapper.removeChild(cloneNext);
         nextSection.scrollIntoView();
         
         showSlides(presentation);
-    }, 100*FADE_OUT_TIME + 100*FADE_IN_DELAY + 1000*FADE_IN_TIME);
+        inLongTransition = false;
+    }, 700*FADE_OUT_TIME + 700*FADE_IN_DELAY + 700*FADE_IN_TIME);
 };
 
 /**
@@ -156,10 +160,21 @@ const handleKeyboardScroll = async (event) => {
     }
 };
 
-const handleMouseScroll = (event) => {
-    resetScroll();
-    if (Math.abs(event.deltaY) < SCROLL_ACTION_THRESHOLD) return;
-    if (!canScroll) return;
+const handleMouseScroll = async (event) => {
+    event.preventDefault();
+
+    if (inLongTransition || inShortTransition) {
+        setTimeout(() => { inShortTransition = false }, SHORT_LOCK_TIME);
+        return;
+    }
+    
+    if (Math.abs(event.deltaY) < SCROLL_ACTION_THRESHOLD) {
+        var doc = document.documentElement;
+        var top = (window.pageYOffset || doc.scrollTop) - (doc.clientTop || 0);
+
+        scroll(0, top + event.deltaY)
+        return;
+    }
 
     /**
      * Regular section scroll
@@ -167,6 +182,7 @@ const handleMouseScroll = (event) => {
     let contentWrapper = getContentWrapper(event, contentWrappers);
 
     if (contentWrapper) {
+        inShortTransition = true;
         let topBlockInd = 0;
 
         // scroll down
@@ -202,7 +218,7 @@ const handleMouseScroll = (event) => {
             } else {
                 let currentWrapperInd = allWrappers.findIndex(w => w.wrapper.id === contentWrapper.wrapper.id);
                 if (0 < currentWrapperInd && currentWrapperInd < allWrappers.length) {
-
+                    
                     let targetWrapper = allWrappers[currentWrapperInd - 1].sections[allWrappers[currentWrapperInd - 1].sectionsLen - 1];
                     targetWrapper.scrollIntoView({behavior: 'smooth'});
                 }
@@ -219,8 +235,7 @@ const handleMouseScroll = (event) => {
     if (presentationWrapper) {
         canScroll = false;
         try { event.preventDefault(); } catch (e) {}
-
-        let topSlide = null;
+        
         let topSlideInd = 0;
         for (let ind = 0; ind < presentationWrapper.sectionsLen; ind++) {
             if (presentationWrapper.sections[ind].getBoundingClientRect().y < 10) {
@@ -232,13 +247,17 @@ const handleMouseScroll = (event) => {
         // scroll down
         if (event.deltaY > 0) {
             if (0 <= topSlideInd && topSlideInd < presentationWrapper.sectionsLen - 1) {
+                inLongTransition = true;
+
                 let currentSection = presentationWrapper.sections[topSlideInd];
                 let nextSection = presentationWrapper.sections[topSlideInd + 1];
-                scrollTo(presentationWrapper.wrapper);
+                presentationWrapper.wrapper.scrollIntoView({behavior: 'auto'});
                 handleScroll(presentationWrapper, currentSection, nextSection, 1);
             } else {
                 let currentWrapperInd = allWrappers.findIndex(w => w.wrapper.id === presentationWrapper.wrapper.id);
                 if (0 <= currentWrapperInd && currentWrapperInd < allWrappers.length - 1) {
+                    inShortTransition = true;
+
                     allWrappers[currentWrapperInd + 1].wrapper.scrollIntoView({behavior: 'smooth'});
                 }
             }
@@ -246,13 +265,17 @@ const handleMouseScroll = (event) => {
         // scroll up
         else {
             if (0 < topSlideInd && topSlideInd <= presentationWrapper.sectionsLen - 1) {
+                inLongTransition = true;
+
                 let currentSection = presentationWrapper.sections[topSlideInd];
                 let nextSection = presentationWrapper.sections[topSlideInd - 1];
-                scrollTo(presentationWrapper.wrapper);
+                presentationWrapper.wrapper.scrollIntoView({behavior: 'auto'});
                 handleScroll(presentationWrapper, currentSection, nextSection, 0);
             } else {
                 let currentWrapperInd = allWrappers.findIndex(w => w.wrapper.id === presentationWrapper.wrapper.id);
                 if (0 < currentWrapperInd && currentWrapperInd < allWrappers.length) {
+                    inShortTransition = true;
+
                     let targetWrapper = allWrappers[currentWrapperInd - 1].sections[allWrappers[currentWrapperInd - 1].sectionsLen - 1];
                     targetWrapper.scrollIntoView({behavior: 'smooth'});
                 }
@@ -310,8 +333,6 @@ const handleTouchMove = (event) => {
         presentation.currentSectionIndex -= 1;
         presentation.currentSection = nextSection;
     }
-
-    resetScroll();
 };
 
 /**
